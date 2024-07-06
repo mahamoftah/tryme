@@ -9,7 +9,9 @@ import os
 from groq import Groq
 from st_audiorec import st_audiorec
 from streamlit_TTS import text_to_speech, text_to_audio
-
+import torch
+from TTS.api import TTS
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
 # Configure API keys and models
 genai.configure(api_key='AIzaSyCEzc2NtaIa3eBMh5QNp1wDaeSCH0OrN-g')
 os.environ['GOOGLE_API_KEY'] = "AIzaSyCEzc2NtaIa3eBMh5QNp1wDaeSCH0OrN-g"
@@ -256,4 +258,6 @@ elif interaction_mode == "Audio":
             print(stream_res)
             # audioRes = text_to_audio(text=stream_res)
             # audio2 = st.audio(audioRes, format="audio/wav")
-            text_to_speech(text=stream_res, language='en')
+            # text_to_speech(text=stream_res, language='en')
+            tts.tts_to_file(text=stream_res, language='en, file_path='output_file')
+            st.audio('output_file', format="audio/wav")
