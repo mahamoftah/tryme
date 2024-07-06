@@ -2,18 +2,20 @@ import streamlit as st
 import os
 from st_audiorec import st_audiorec
 from streamlit_TTS import text_to_speech, text_to_audio
-
+from io import BytesIO
+import base64
+from gtts import gTTS
 from LLM.Embedding import *
 from LLM.Gemini import *
 from LLM.GroqApi import *
-
+import re
 from STT.GroqApiSTT import *
-
 
 # Define model options
 modelOptions = {
+    'Gemini': 'gemini-1.5-flash',
+    'Gemma2 9b': 'gemma2-9b-it',
     "Gemma 7b": 'gemma-7b-it',
-    'Gemini' : 'gemini-1.5-flash',
     "Mixtral 8x7b": "mixtral-8x7b-32768",
     "LLaMA3 70b": "llama3-70b-8192",
     "LLaMA3 8b": "llama3-8b-8192",
@@ -27,11 +29,30 @@ if selected_model_id == 'gemini-1.5-flash':
     chatModel = Gemini()
 else:
     chatModel = Groq(model_path=selected_model_id)
-    
-STTModel =  GroqSTT()
+
+STTModel = GroqSTT()
 Vectoriser = PDFVectoriser()
 
 
+languages = ['English', 'Arabic']
+language = st.sidebar.selectbox("Select a language", languages)
+lang = language[:2].lower()
+
+
+def play_audio(audio_buffer):
+    audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode()
+    audio_data = f"data:audio/wav;base64,{audio_base64}"
+
+    audio_html = f"""
+    <audio id="audio" autoplay>
+        <source src="{audio_data}" type="audio/wav">
+    </audio>
+    <script>
+        var audio = document.getElementById('audio');
+        audio.play();
+    </script>
+    """
+    st.markdown(audio_html, unsafe_allow_html=True)
 
 
 # HTML and CSS for styled title
@@ -119,7 +140,7 @@ if interaction_mode == "Text":
     # Display chat history
     for msg in st.session_state.messages:
         st.chat_message(msg["role"]).write(msg["content"])
-    
+
     user_input = st.chat_input("Enter your message:")
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -161,24 +182,24 @@ elif interaction_mode == "Audio":
     if wav_audio_data is not None:
         with open("recorded_audio.wav", "wb") as f:
             f.write(wav_audio_data)
-        
-        # Get the URL for the audio data
-        audio_url = st.audio(wav_audio_data, format="audio/wav")
-        
-        # Use custom HTML and JavaScript to autoplay the audio and make it invisible
-        st.markdown(f"""
-        <audio id="audio" autoplay>
-            <source src="{audio_url}" type="audio/wav">
-        </audio>
-        <script>
-            var audio = document.getElementById('audio');
-            audio.style.display = 'none';
-            audio.play();
-        </script>
-        """, unsafe_allow_html=True)
+
+        # # Get the URL for the audio data
+        # audio_url = st.audio(wav_audio_data, format="audio/wav")
+
+        # # Use custom HTML and JavaScript to autoplay the audio and make it invisible
+        # st.markdown(f"""
+        # <audio id="audio" autoplay>
+        #     <source src="{audio_url}" type="audio/wav">
+        # </audio>
+        # <script>
+        #     var audio = document.getElementById('audio');
+        #     audio.style.display = 'none';
+        #     audio.play();
+        # </script>
+        # """, unsafe_allow_html=True)
 
         # Transcribe audio using Whisper
-        transcription = STTModel.transcribe_audio("recorded_audio.webm")
+        transcription = STTModel.transcribe_audio("recorded_audio.wav", lang)
         # print(transcription)
         user_input = transcription
 
@@ -204,7 +225,15 @@ elif interaction_mode == "Audio":
                 stream_res += response
                 # placeholder.markdown(stream_res)
             st.session_state.messages.append({"role": "AI", "content": stream_res})
-            # print(stream_res)
-            audioRes = text_to_audio(text=stream_res)
-            audio2 = st.audio(audioRes, format="audio/wav")
-            # text_to_speech(text=stream_res, language='en')
+
+            pattern = re.compile(r'[*#,]')
+            text = pattern.sub('', stream_res)
+
+            if stream_res:
+                # Convert text to speech
+                sound_file = BytesIO()
+                tts = gTTS(text, lang=lang)
+                tts.write_to_fp(sound_file)
+                play_audio(sound_file)
+            else:
+                st.warning('No text to convert to speech.')
