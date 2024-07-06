@@ -5,7 +5,7 @@ import google.generativeai as genai
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 import os
-from audio_recorder_streamlit import audio_recorder
+# from audio_recorder_streamlit import audio_recorder
 from groq import Groq
 from st_audiorec import st_audiorec
 from streamlit_TTS import text_to_speech, text_to_audio
