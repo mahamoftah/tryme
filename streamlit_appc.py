@@ -178,7 +178,7 @@ elif interaction_mode == "Audio":
         """, unsafe_allow_html=True)
 
         # Transcribe audio using Whisper
-        transcription = STTModel.transcribe_audio("recorded_audio.webm")
+        transcription = STTModel.transcribe_audio("recorded_audio.wav")
         # print(transcription)
         user_input = transcription
 
