@@ -4,6 +4,7 @@ import google.generativeai as genai
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
+import streamlit as st
 
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 os.environ['GOOGLE_API_KEY'] = st.secrets["GOOGLE_API_KEY"]
