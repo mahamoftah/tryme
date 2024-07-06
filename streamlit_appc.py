@@ -2,6 +2,9 @@ import streamlit as st
 import os
 from st_audiorec import st_audiorec
 from streamlit_TTS import text_to_speech, text_to_audio
+from io import BytesIO
+import base64
+from gtts import gTTS
 
 from LLM.Embedding import *
 from LLM.Gemini import *
@@ -19,6 +22,7 @@ modelOptions = {
     "LLaMA3 8b": "llama3-8b-8192",
 }
 
+
 # Dropdown menu for model selection
 selected_model = st.sidebar.selectbox("Select a model", list(modelOptions.keys()))
 selected_model_id = modelOptions[selected_model]
@@ -30,6 +34,21 @@ else:
     
 STTModel =  GroqSTT()
 Vectoriser = PDFVectoriser()
+
+def play_audio(audio_buffer):
+    audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode()
+    audio_data = f"data:audio/wav;base64,{audio_base64}"
+
+    audio_html = f"""
+    <audio id="audio" autoplay>
+        <source src="{audio_data}" type="audio/wav">
+    </audio>
+    <script>
+        var audio = document.getElementById('audio');
+        audio.play();
+    </script>
+    """
+    st.markdown(audio_html, unsafe_allow_html=True)
 
 
 
@@ -204,7 +223,12 @@ elif interaction_mode == "Audio":
                 stream_res += response
                 # placeholder.markdown(stream_res)
             st.session_state.messages.append({"role": "AI", "content": stream_res})
-            # print(stream_res)
-            audioRes = text_to_audio(text=stream_res)
-            audio2 = st.audio(audioRes, format="audio/wav")
-            # text_to_speech(text=stream_res, language='en')
+            if stream_res:
+                # Convert text to speech
+                sound_file = BytesIO()
+                tts = gTTS(stream_res, lang='en')
+                tts.write_to_fp(sound_file)
+                play_audio(sound_file)
+            else:
+                st.warning('No text to convert to speech.')
+
