@@ -28,7 +28,7 @@ def transcribe_audio(audio_file):
         return
 
     try:
-         with open(audio_file, "rb") as file:
+        with open(audio_file, "rb") as file:
         transcription = client.audio.transcriptions.create(
             file=file,
             model="whisper-large-v3",
@@ -36,7 +36,7 @@ def transcribe_audio(audio_file):
             response_format="json",  # Optional
             temperature=0.0  # Optional
         )
-         return transcription.text
+        return transcription.text
     except IOError as e:
         st.error(f"An error occurred while opening the file: {e}")
    
