@@ -259,5 +259,5 @@ elif interaction_mode == "Audio":
             # audioRes = text_to_audio(text=stream_res)
             # audio2 = st.audio(audioRes, format="audio/wav")
             # text_to_speech(text=stream_res, language='en')
-            tts.tts_to_file(text=stream_res, language='en, file_path='output_file')
+            tts.tts_to_file(text=stream_res, language='en', file_path='output_file')
             st.audio('output_file', format="audio/wav")
