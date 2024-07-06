@@ -162,20 +162,20 @@ elif interaction_mode == "Audio":
         with open("recorded_audio.wav", "wb") as f:
             f.write(wav_audio_data)
         
-        # Get the URL for the audio data
-        audio_url = st.audio(wav_audio_data, format="audio/wav")
+        # # Get the URL for the audio data
+        # audio_url = st.audio(wav_audio_data, format="audio/wav")
         
-        # Use custom HTML and JavaScript to autoplay the audio and make it invisible
-        st.markdown(f"""
-        <audio id="audio" autoplay>
-            <source src="{audio_url}" type="audio/wav">
-        </audio>
-        <script>
-            var audio = document.getElementById('audio');
-            audio.style.display = 'none';
-            audio.play();
-        </script>
-        """, unsafe_allow_html=True)
+        # # Use custom HTML and JavaScript to autoplay the audio and make it invisible
+        # st.markdown(f"""
+        # <audio id="audio" autoplay>
+        #     <source src="{audio_url}" type="audio/wav">
+        # </audio>
+        # <script>
+        #     var audio = document.getElementById('audio');
+        #     audio.style.display = 'none';
+        #     audio.play();
+        # </script>
+        # """, unsafe_allow_html=True)
 
         # Transcribe audio using Whisper
         transcription = STTModel.transcribe_audio("recorded_audio.wav")
