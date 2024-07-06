@@ -14,4 +14,4 @@ python-dotenv
 openai
 git+https://github.com/coqui-ai/TTS
 TTS
-torch==1.12.1
+torch
