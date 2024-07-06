@@ -12,4 +12,5 @@ streamlit-audiorec
 streamlit-TTS
 python-dotenv
 openai
-gtts
+gTTS
+torchaudio
