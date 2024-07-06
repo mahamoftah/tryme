@@ -29,13 +29,13 @@ def transcribe_audio(audio_file):
 
     try:
         with open(audio_file, "rb") as file:
-        transcription = client.audio.transcriptions.create(
-            file=file,
-            model="whisper-large-v3",
-            prompt="Specify context or spelling",  # Optional
-            response_format="json",  # Optional
-            temperature=0.0  # Optional
-        )
+            transcription = client.audio.transcriptions.create(
+                file=file,
+                model="whisper-large-v3",
+                prompt="Specify context or spelling",  # Optional
+                response_format="json",  # Optional
+                temperature=0.0  # Optional
+            )
         return transcription.text
     except IOError as e:
         st.error(f"An error occurred while opening the file: {e}")
