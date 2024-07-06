@@ -12,3 +12,6 @@ streamlit-audiorec
 streamlit-TTS
 python-dotenv
 openai
+git+https://github.com/coqui-ai/TTS
+TTS==0.10.2
+torch==1.12.1
