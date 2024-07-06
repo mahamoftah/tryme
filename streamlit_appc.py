@@ -1,95 +1,38 @@
 import streamlit as st
-from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-import google.generativeai as genai
-from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 import os
-# from audio_recorder_streamlit import audio_recorder
-from groq import Groq
 from st_audiorec import st_audiorec
 from streamlit_TTS import text_to_speech, text_to_audio
-import torch
-from TTS.api import TTS
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
-# Configure API keys and models
-genai.configure(api_key='AIzaSyCEzc2NtaIa3eBMh5QNp1wDaeSCH0OrN-g')
-os.environ['GOOGLE_API_KEY'] = "AIzaSyCEzc2NtaIa3eBMh5QNp1wDaeSCH0OrN-g"
 
-GROQ_API_KEY = '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'
+from LLM.Embedding import *
+from LLM.Gemini import *
+from LLM.GroqApi import *
 
-client = Groq(api_key=GROQ_API_KEY)
+from STT.GroqApiSTT import *
 
-model = 'models/embedding-001'
-chat_model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Function to transcribe audio using Whisper
-def transcribe_audio(audio_file):
-    if not os.path.isfile(audio_file):
-        st.error(f"File {audio_file} does not exist.")
-        return
+# Define model options
+modelOptions = {
+    "Gemma 7b": 'gemma-7b-it',
+    'Gemini' : 'gemini-1.5-flash',
+    "Mixtral 8x7b": "mixtral-8x7b-32768",
+    "LLaMA3 70b": "llama3-70b-8192",
+    "LLaMA3 8b": "llama3-8b-8192",
+}
 
-    try:
-        with open(audio_file, "rb") as file:
-            transcription = client.audio.transcriptions.create(
-                file=file,
-                model="whisper-large-v3",
-                prompt="Specify context or spelling",  # Optional
-                response_format="json",  # Optional
-                temperature=0.0  # Optional
-            )
-        return transcription.text
-    except IOError as e:
-        st.error(f"An error occurred while opening the file: {e}")
-   
-   
+# Dropdown menu for model selection
+selected_model = st.sidebar.selectbox("Select a model", list(modelOptions.keys()))
+selected_model_id = modelOptions[selected_model]
 
-def extract_from_pdf(pdf_path):
-    reader = PdfReader(pdf_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ""
-    return text
+if selected_model_id == 'gemini-1.5-flash':
+    chatModel = Gemini()
+else:
+    chatModel = Groq(model_path=selected_model_id)
+    
+STTModel =  GroqSTT()
+Vectoriser = PDFVectoriser()
 
-def google_pdf_gemini_embedding(text, type):
-    try:
-        embedding = GoogleGenerativeAIEmbeddings(model=model, task_type=type, google_api_key=os.environ['GOOGLE_API_KEY'])
-        return embedding
-    except Exception as e:
-        st.error(f"Failed to generate embeddings: {e}")
-        return []
 
-def create_vector_db(texts):
-    try:
-        embeddings = google_pdf_gemini_embedding(texts, "SEMANTIC_SIMILARITY")
-        if not embeddings:
-            raise ValueError("Embeddings list is empty.")
-        v_db = FAISS.from_texts(texts, embeddings)
-        return v_db
-    except Exception as e:
-        st.error(f"Failed to create vector database: {e}")
-        return None
 
-def get_similar_context(v_db, v_user, n):
-    if v_user:
-        docs = v_db.similarity_search(v_user, k=n)
-        return docs
-
-def get_response(query):
-    try:
-        response = chat_model.generate_content(query, stream=True)
-        for res in response:
-            if hasattr(res, 'text') and res.text:
-                yield res.text
-    except ValueError as e:
-        st.error(f"Response contains no valid text part: {e}")
-    except Exception as e:
-        st.error(f"An error occurred while generating the response: {e}")
-
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=100
-)
 
 # HTML and CSS for styled title
 title_html = """
@@ -133,14 +76,14 @@ pdf = st.sidebar.file_uploader("Upload PDF", type=["pdf"])
 
 if pdf and st.sidebar.button("Create Vector Database"):
     with st.spinner("Creating vector database..."):
-        texts = text_splitter.split_text(extract_from_pdf(pdf))
+        texts = Vectoriser.split_text(Vectoriser.extract_from_pdf(pdf))
         if not texts:
             st.error("No texts were extracted from the PDF.")
         else:
-            st.session_state.v_db = create_vector_db(texts)
+            st.session_state.v_db = Vectoriser.create_vector_db(texts)
             st.session_state.pdf = pdf
             st.session_state.texts = texts
-            if st.session_state.v_db:
+            if st.session_state.v_db is not None:
                 st.success("Vector database created successfully!")
             else:
                 st.error("Failed to create vector database.")
@@ -156,22 +99,21 @@ if st.sidebar.button("Delete Vector Database"):
     st.success("Vector database deleted!")
 
 # Function to process audio input and generate response
-def process_audio(audio_data):
-    with open("recorded_audio.wav", "wb") as f:
-        f.write(audio_data)
+# def process_audio(audio_data):
+#     with open("recorded_audio.wav", "wb") as f:
+#         f.write(audio_data)
 
-    # Transcribe audio using Whisper
-    transcription = transcribe_audio("recorded_audio.wav")
-    st.session_state.messages.append({"role": "user", "content": transcription})
+#     # Transcribe audio using Whisper
+#     transcription = STTModel.transcribe_audio("recorded_audio.wav")
+#     st.session_state.messages.append({"role": "user", "content": transcription})
 
-    # Generate response
-    response = ""
-    for res in get_response(transcription):
-        response += res
+#     # Generate response
+#     response = ""
+#     for res in STTModel.get_response(transcription):
+#         response += res
 
-    st.session_state.messages.append({"role": "AI", "content": response})
-    return response
-
+#     st.session_state.messages.append({"role": "AI", "content": response})
+#     return response
 
 if interaction_mode == "Text":
     # Display chat history
@@ -186,21 +128,27 @@ if interaction_mode == "Text":
         similar_text = "You are a Multi Task AI Agent"
 
         if st.session_state.v_db:
-            similar_context = get_similar_context(st.session_state.v_db, user_input, 5)
+            similar_context = Vectoriser.get_similar_context(user_input, 5, st.session_state.v_db)
+            # print("we are here searching")
+            # print(similar_context)
             for doc in similar_context:
                 similar_text += doc.page_content
+                # print(doc)
+                # print("simialr text found")
 
         with st.spinner("Thinking..."):
             stream_res = ""
             conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.messages])
             combined_input = f"{conversation_history}\nuser: {user_input}\nAI:"
             combined_input += similar_text
+            # print("simialr text added", similar_text)
 
-            for response in get_response(combined_input):
+            for response in chatModel.generate(combined_input):
+                if response is None:
+                    break
                 stream_res += response
                 placeholder.markdown(stream_res)
             st.session_state.messages.append({"role": "AI", "content": stream_res})
-            
 
 elif interaction_mode == "Audio":
 
@@ -209,7 +157,6 @@ elif interaction_mode == "Audio":
     # Recording audio
     st.subheader("Record Your Message:")
     wav_audio_data = st_audiorec()
-
 
     if wav_audio_data is not None:
         with open("recorded_audio.wav", "wb") as f:
@@ -231,8 +178,8 @@ elif interaction_mode == "Audio":
         """, unsafe_allow_html=True)
 
         # Transcribe audio using Whisper
-        transcription = transcribe_audio("recorded_audio.webm")
-        print(transcription)
+        transcription = STTModel.transcribe_audio("recorded_audio.webm")
+        # print(transcription)
         user_input = transcription
 
         st.session_state.messages.append({"role": "user", "content": user_input})
@@ -241,7 +188,7 @@ elif interaction_mode == "Audio":
         similar_text = "You are a Multi Task AI Agent"
 
         if st.session_state.v_db:
-            similar_context = get_similar_context(st.session_state.v_db, user_input, 5)
+            similar_context = Vectoriser.get_similar_context(user_input, 5, st.session_state.v_db)
             for doc in similar_context:
                 similar_text += doc.page_content
 
@@ -251,13 +198,13 @@ elif interaction_mode == "Audio":
             combined_input = f"{conversation_history}\nuser: {user_input}\nAI:"
             combined_input += similar_text
 
-            for response in get_response(combined_input):
+            for response in chatModel.generate(combined_input):
+                if response is None:
+                    break
                 stream_res += response
                 # placeholder.markdown(stream_res)
             st.session_state.messages.append({"role": "AI", "content": stream_res})
-            print(stream_res)
-            # audioRes = text_to_audio(text=stream_res)
-            # audio2 = st.audio(audioRes, format="audio/wav")
+            # print(stream_res)
+            audioRes = text_to_audio(text=stream_res)
+            audio2 = st.audio(audioRes, format="audio/wav")
             # text_to_speech(text=stream_res, language='en')
-            tts.tts_to_file(text=stream_res, language='en', file_path='output_file')
-            st.audio('output_file', format="audio/wav")
