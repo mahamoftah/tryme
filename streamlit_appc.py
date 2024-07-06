@@ -164,7 +164,7 @@ if interaction_mode == "Text":
             combined_input += similar_text
             # print("simialr text added", similar_text)
 
-            for response in chatModel.generate(combined_input):
+            for response in chatModel.generate(combined_input, lang):
                 if response is None:
                     break
                 stream_res += response
@@ -200,6 +200,7 @@ elif interaction_mode == "Audio":
 
         # Transcribe audio using Whisper
         transcription = STTModel.transcribe_audio("recorded_audio.wav", lang)
+        st.write(transcription)
         # print(transcription)
         user_input = transcription
 
@@ -213,13 +214,13 @@ elif interaction_mode == "Audio":
             for doc in similar_context:
                 similar_text += doc.page_content
 
-        with st.spinner("Thinking..."):
+        with (st.spinner("Thinking...")):
             stream_res = ""
             conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.messages])
             combined_input = f"{conversation_history}\nuser: {user_input}\nAI:"
             combined_input += similar_text
 
-            for response in chatModel.generate(combined_input):
+            for response in chatModel.generate(combined_input, lang):
                 if response is None:
                     break
                 stream_res += response

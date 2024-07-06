@@ -10,11 +10,17 @@ class Groq:
         self.client = groq(api_key=api_key_)
         self.model = model_path
 
-    def generate(self, question):
+    def generate(self, question, lang):
+
+        if (self.model == "mixtral-8x7b-32768" or self.model == "llama3-70b-8192" or self.model == "llama3-8b-8192") and lang == "ar":
+            context = "you are a helpful assistant, Please Answer in Arabic."
+        else:
+            context = "you are a helpful assistant."
+
         response = self.client.chat.completions.create(messages=[
             {
                 "role": "system",
-                "content": "you are a helpful assistant."
+                "content": context
             },
             # Set a user message for the assistant to respond to.
             {
