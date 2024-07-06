@@ -23,7 +23,12 @@ chat_model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Function to transcribe audio using Whisper
 def transcribe_audio(audio_file):
-    with open(audio_file, "rb") as file:
+    if not os.path.isfile(audio_file):
+        st.error(f"File {audio_file} does not exist.")
+        return
+
+    try:
+         with open(audio_file, "rb") as file:
         transcription = client.audio.transcriptions.create(
             file=file,
             model="whisper-large-v3",
@@ -31,7 +36,11 @@ def transcribe_audio(audio_file):
             response_format="json",  # Optional
             temperature=0.0  # Optional
         )
-    return transcription.text
+         return transcription.text
+    except IOError as e:
+        st.error(f"An error occurred while opening the file: {e}")
+   
+   
 
 def extract_from_pdf(pdf_path):
     reader = PdfReader(pdf_path)
