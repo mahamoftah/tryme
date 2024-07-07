@@ -229,6 +229,8 @@ elif interaction_mode == "Audio":
             pattern = re.compile(r'[*#,]')
             text = pattern.sub('', stream_res)
 
+            st.write("Debug")
+
             if stream_res:
                 # Convert text to speech
                 sound_file = BytesIO()
