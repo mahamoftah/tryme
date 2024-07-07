@@ -200,7 +200,6 @@ elif interaction_mode == "Audio":
 
         # Transcribe audio using Whisper
         transcription = STTModel.transcribe_audio("recorded_audio.wav", lang)
-        st.write(transcription)
         # print(transcription)
         user_input = transcription
 
